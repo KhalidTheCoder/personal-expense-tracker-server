@@ -6,10 +6,11 @@ const {
   updateExpense,
   deleteExpense,
 } = require("../controllers/expenseController");
+const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 
-router.get("/", getExpenses);
-router.post("/", addExpense);
-router.patch("/:id", updateExpense);
-router.delete("/:id", deleteExpense);
+router.get("/", verifyFirebaseToken, getExpenses);
+router.post("/", verifyFirebaseToken, addExpense);
+router.patch("/:id", verifyFirebaseToken, updateExpense);
+router.delete("/:id", verifyFirebaseToken, deleteExpense);
 
 module.exports = router;
