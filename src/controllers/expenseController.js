@@ -1,3 +1,4 @@
+const { ObjectId } = require("mongodb");
 const { expenseCollection } = require("../config/db");
 
 //Get Expenses Details Functionality
@@ -21,7 +22,7 @@ exports.getExpenses = async (req, res) => {
   }
 };
 
-//Create or Add Expense Functionality
+//Create or Add Expense Functionality With Validation
 
 exports.addExpense = async (req, res) => {
   try {
@@ -80,8 +81,68 @@ exports.addExpense = async (req, res) => {
   }
 };
 
-exports.updateExpense = (req, res) => {
-  res.send("Add a new expense");
+//Update or Edit Functionality With Validation
+
+exports.updateExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userEmail } = req.query;
+    const { title, amount, category, date, userEmail: bodyEmail } = req.body;
+
+    if (bodyEmail !== userEmail) {
+      return res.status(400).json({ error: "User email mismatch" });
+    }
+
+    if (!title || !amount || !category || !date) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (title.trim().length < 3) {
+      return res
+        .status(400)
+        .json({ error: "Title must be at least 3 characters long" });
+    }
+
+    if (isNaN(amount) || Number(amount) <= 0) {
+      return res
+        .status(400)
+        .json({ error: "Amount must be a number greater than 0" });
+    }
+
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    const today = new Date();
+    if (parsedDate > today) {
+      return res.status(400).json({ error: "Date cannot be in the future" });
+    }
+
+    const result = await expenseCollection.updateOne(
+      { _id: new ObjectId(id), userEmail },
+      {
+        $set: {
+          title: title.trim(),
+          amount: Number(amount),
+          category,
+          date: parsedDate,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res
+        .status(404)
+        .json({ error: "Expense not found or unauthorized" });
+    }
+
+    res.json({ message: "Expense updated successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update expense" });
+  }
 };
 
 exports.deleteExpense = (req, res) => {
