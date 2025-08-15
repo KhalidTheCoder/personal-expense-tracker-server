@@ -1,16 +1,33 @@
 const { expenseCollection } = require("../config/db");
 
-exports.getExpenses = (req, res) => {
-  res.send("Get all expenses");
+//Get Expenses Details Functionality
+exports.getExpenses = async (req, res) => {
+  try {
+    const userEmail = req.query.userEmail;
+
+    if (!userEmail) {
+      return res.status(400).json({ error: "User email is required" });
+    }
+
+    const expenses = await expenseCollection
+      .find({ userEmail })
+      .sort({ date: -1 })
+      .toArray();
+
+    res.status(200).json(expenses);
+  } catch (error) {
+    console.error("Error fetching expenses:", error);
+    res.status(500).json({ error: "Failed to fetch expenses" });
+  }
 };
 
 //Create or Add Expense Functionality
 
 exports.addExpense = async (req, res) => {
   try {
-    const { name, title, amount, category, date, userEmail } = req.body;
+    const { title, amount, category, date, userEmail } = req.body;
 
-    if (!name || !title || !amount || !category || !date) {
+    if (!title || !amount || !category || !date) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -42,7 +59,6 @@ exports.addExpense = async (req, res) => {
     }
 
     const expense = {
-      name: name.trim(),
       title: title.trim(),
       amount: Number(amount),
       category,
