@@ -2,12 +2,13 @@ const { ObjectId } = require("mongodb");
 const { expenseCollection } = require("../config/db");
 
 //Get Expenses Details Functionality
+
 exports.getExpenses = async (req, res) => {
   try {
-    const userEmail = req.query.userEmail;
+    const userEmail = req.user.email;
 
     if (!userEmail) {
-      return res.status(400).json({ error: "User email is required" });
+      return res.status(400).json({ error: "User email not found in token" });
     }
 
     const expenses = await expenseCollection
@@ -26,7 +27,8 @@ exports.getExpenses = async (req, res) => {
 
 exports.addExpense = async (req, res) => {
   try {
-    const { title, amount, category, date, userEmail } = req.body;
+    const { title, amount, category, date } = req.body;
+    const userEmail = req.user.email;
 
     if (!title || !amount || !category || !date) {
       return res.status(400).json({ error: "All fields are required" });
@@ -64,7 +66,7 @@ exports.addExpense = async (req, res) => {
       amount: Number(amount),
       category,
       date: parsedDate,
-      userEmail: userEmail || null,
+      userEmail,
       createdAt: new Date(),
     };
 
@@ -86,16 +88,8 @@ exports.addExpense = async (req, res) => {
 exports.updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userEmail } = req.query;
-    const { title, amount, category, date, userEmail: bodyEmail } = req.body;
-
-    if (bodyEmail !== userEmail) {
-      return res.status(400).json({ error: "User email mismatch" });
-    }
-
-    if (!title || !amount || !category || !date) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
+    const userEmail = req.user.email;
+    const { title, amount, category, date } = req.body;
 
     if (title.trim().length < 3) {
       return res
@@ -109,6 +103,10 @@ exports.updateExpense = async (req, res) => {
         .json({ error: "Amount must be a number greater than 0" });
     }
 
+    if (!category) {
+      return res.status(400).json({ error: "Please select a category" });
+    }
+
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) {
       return res.status(400).json({ error: "Invalid date format" });
@@ -117,6 +115,11 @@ exports.updateExpense = async (req, res) => {
     const today = new Date();
     if (parsedDate > today) {
       return res.status(400).json({ error: "Date cannot be in the future" });
+    }
+
+    const minDate = new Date("1970-01-01");
+    if (parsedDate < minDate) {
+      return res.status(400).json({ error: "Date is too far in the past" });
     }
 
     const result = await expenseCollection.updateOne(
@@ -133,14 +136,14 @@ exports.updateExpense = async (req, res) => {
     );
 
     if (result.matchedCount === 0) {
-      return res
-        .status(404)
-        .json({ error: "Expense not found or unauthorized" });
+      return res.status(404).json({
+        error: "Expense not found or you are not authorized to update it",
+      });
     }
 
-    res.json({ message: "Expense updated successfully" });
-  } catch (err) {
-    console.error(err);
+    res.status(200).json({ message: "Expense updated successfully" });
+  } catch (error) {
+    console.error("Error updating expense:", error);
     res.status(500).json({ error: "Failed to update expense" });
   }
 };
@@ -150,21 +153,17 @@ exports.updateExpense = async (req, res) => {
 exports.deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userEmail } = req.query;
-
-    if (!userEmail) {
-      return res.status(400).json({ error: "User email is required" });
-    }
+    const userEmail = req.user.email;
 
     const result = await expenseCollection.deleteOne({
       _id: new ObjectId(id),
-      userEmail,
+      userEmail: userEmail,
     });
 
     if (result.deletedCount === 0) {
-      return res
-        .status(404)
-        .json({ error: "Expense not found or unauthorized" });
+      return res.status(404).json({
+        error: "Expense not found or you are not authorized to delete it",
+      });
     }
 
     res.status(200).json({ message: "Expense deleted successfully" });
