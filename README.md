@@ -7,7 +7,7 @@ It provides REST APIs for managing expenses and handles authentication with Fire
 
 ## 🔗 Live Demo
 
-- **View Live**: [Live Site](https://expense-tracker-5bc64.web.app/)  
+- **Frontend (Live Site)**: [Live Site](https://expense-tracker-5bc64.web.app/)  
 
 
 ---
@@ -41,13 +41,10 @@ git clone https://github.com/KhalidTheCoder/personal-expense-tracker-server
 cd personal-expense-tracker-server
 
 2️⃣ Install dependencies
-
-```bash
 npm install 
 
 3️⃣ Create .env file in root:
 
-```env
 DB_USER=yourMongoUser
 DB_PASS=yourMongoPassword
 FB_SERVICE_KEY=yourFirebaseServiceKey
@@ -56,8 +53,6 @@ FB_SERVICE_KEY=yourFirebaseServiceKey
 
 
 4️⃣ Run backend server
-
-```bash
 npm run dev
 
 ➡️ Backend will be running at: http://localhost:5000
